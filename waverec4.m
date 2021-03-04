@@ -82,7 +82,7 @@ function X = waverec4(wdec,varargin)
 %
 %   Extended for 4D by
 %   T H   2021
-%   Last edited: 2.3.2021
+%   Last edited: 4.3.2021
 
 % Check arguments.
 if nargin > 1
@@ -191,23 +191,13 @@ end
 
 %-------------------------------------------------------------------------
 function idxtokeep = subbandIdx(num)
-error('This magic trick has not been implemented yet!')
-idx = bin2dec(dec2bin(num)');
-switch idx
-    case 0
-        idxtokeep = 8;
-    case 1 
-        idxtokeep = 4;
-    case 2
-        idxtokeep = 6;
-    case 3
-        idxtokeep = 2;
-    case 4
-        idxtokeep = 7;
-    case 5 
-        idxtokeep = 3;
-    case 6
-        idxtokeep = 5;
-    case 7
-        idxtokeep = 1;
-end
+% This function determines the index 'idx' of the wavelet subband given in
+% 'pseudo' binary system. Here input [1 1 0 1] ~ LLHL subband should be 5th
+% subband.
+% Hence we revert the values [1 1 0 1] -> [0 0 1 0], then we reverse the
+% direction since the wavelet subbands are listed from left to right:
+% -> [0 1 0 0]. This value is then converted to actual binary -> '0100',
+% then to integer -> 4 and finally shifted by one to match Matlab indexing.
+idxtokeep = 1 + bin2dec(dec2bin(fliplr(~num))');
+
+
