@@ -60,6 +60,7 @@ function wdec = wavedec4(X,level,varargin)
 %   
 %   Extended to 4D by
 %   T H   2021
+%   University of Helsinki, Dept. of Mathematics and Statistics
 %   Last edited: 2.3.2021
 
 % Convert strings to char arrays

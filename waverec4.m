@@ -82,6 +82,7 @@ function X = waverec4(wdec,varargin)
 %
 %   Extended for 4D by
 %   T H   2021
+%   University of Helsinki, Dept. of Mathematics and Statistics
 %   Last edited: 4.3.2021
 
 % Check arguments.

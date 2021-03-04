@@ -42,6 +42,7 @@ function X = idwt4(wt,varargin)
 %
 %   Extended for 4D by
 %   T H   2021
+%   University of Helsinki, Dept. of Mathematics and Statistics
 %   Last edited: 3.3.2021
 
 % Check arguments.
