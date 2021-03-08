@@ -1,6 +1,5 @@
 # wavedec4
- 4D Discrete Wavelet Transform (real-valued wavelets) for Matlab
-
+## 4D Discrete Wavelet Transform for Matlab
 This is the respository for Matlab implementation of **4D** (4 dimensional) **discrete wavelet transform** and the corresponding **inverse transform** by Tommi Heikkilä (University of Helsinki, Department of Mathematics and Statistics).
 
 Excellent book on anything wavelet related is "A wavelet tour of signal processing". *Elsevier, 1999* by Stéphane Mallat.
