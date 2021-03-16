@@ -193,12 +193,11 @@ end
 %-------------------------------------------------------------------------
 function idxtokeep = subbandIdx(num)
 % This function determines the index 'idx' of the wavelet subband given in
-% 'pseudo' binary system. Here input [1 1 0 1] ~ LLHL subband should be 5th
+% 'pseudo' binary system. Here input [1 1 0 1] ~ LLHL subband should be 3rd
 % subband.
-% Hence we revert the values [1 1 0 1] -> [0 0 1 0], then we reverse the
-% direction since the wavelet subbands are listed from left to right:
-% -> [0 1 0 0]. This value is then converted to actual binary -> '0100',
-% then to integer -> 4 and finally shifted by one to match Matlab indexing.
-idxtokeep = 1 + bin2dec(dec2bin(fliplr(~num))');
+% Hence we revert the values [1 1 0 1] -> [0 0 1 0].
+% This value is then converted to actual binary -> '0010',
+% then to integer -> 2 and finally shifted by one to match Matlab indexing.
+idxtokeep = 1 + bin2dec(dec2bin(~num)');
 
 
