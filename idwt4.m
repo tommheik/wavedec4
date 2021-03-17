@@ -143,7 +143,7 @@ end % i
 clear U
 
 % Columns
-perm = [2,1,3,4];
+perm = []; % Same as [1,2,3,4]
 W = cell(1,2);
 for i = 1:2
     W{i} = wrec1D(V{i,1},Lo{2},perm,perFLAG,s) + ...
@@ -151,8 +151,9 @@ for i = 1:2
 end
 clear V
 
-% Last reconstruction. Convolve rows (default).
-X = wrec1D(W{1},Lo{1},[],perFLAG,s) + wrec1D(W{2},Hi{1},[],perFLAG,s);
+% Last reconstruction. Convolve rows.
+perm = [2,1,3,4];
+X = wrec1D(W{1},Lo{1},perm,perFLAG,s) + wrec1D(W{2},Hi{1},perm,perFLAG,s);
 
 %-----------------------------------------------------------------------%
 function X = wrec1D(X,F,perm,perFLAG,s)

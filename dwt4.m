@@ -136,7 +136,6 @@ for k = nextARG:2:nbIn-1
 end
 
 dec = cell(2,2,2,2);
-permVect = [];
 
 % Ensure that filters are row vectors so that the filtering
 % operations in convn() are correct
@@ -148,20 +147,22 @@ HiR = cellfun(@(x)x(:)',HiR,'uni',0);
 % Notes regarding the following: different directions of X are convolved in
 % the following order: rows -> columns -> slices -> time steps.
 % wdec1D reverts the permutation so the output is always in the original
-% form (X,Y,Z,T).
+% form (rows,columns,slices,time steps).
+% Wdec1D convolves across the second dimension.
 
-% Convolve X along rows
+% Convolve X across rows
+permVect = [2,1,3,4]; % Permute
 [a,d] = wdec1D(X,LoD{1},HiD{1},permVect,dwtEXTM);
 clear X % These are no longer needed
 
-permVect = [2,1,3,4]; % Permute
-% Convolve a and d along columns
+% Convolve a and d across columns
+permVect = []; % Same as [1,2,3,4];
 [aa,ad] = wdec1D(a,LoD{2},HiD{2},permVect,dwtEXTM);
 [da,dd] = wdec1D(d,LoD{2},HiD{2},permVect,dwtEXTM);
 clear a d % These are no longer needed
 
 permVect = [1,3,2,4]; % Permute
-% Convolve .. along slices
+% Convolve .. across slices
 [aaa,aad] = wdec1D(aa,LoD{3},HiD{3},permVect,dwtEXTM);
 [ada,add] = wdec1D(ad,LoD{3},HiD{3},permVect,dwtEXTM);
 [daa,dad] = wdec1D(da,LoD{3},HiD{3},permVect,dwtEXTM);
@@ -169,7 +170,7 @@ permVect = [1,3,2,4]; % Permute
 clear aa ad da dd % There are no longer needed
 
 permVect = [1,4,2,3]; % Permute
-% Convolve ... along time steps
+% Convolve ... across time steps
 [dec{1,1,1,1},dec{1,1,1,2}] = wdec1D(aaa,LoD{4},HiD{4},permVect,dwtEXTM);
 [dec{1,1,2,1},dec{1,1,2,2}] = wdec1D(aad,LoD{4},HiD{4},permVect,dwtEXTM);
 [dec{1,2,1,1},dec{1,2,1,2}] = wdec1D(ada,LoD{4},HiD{4},permVect,dwtEXTM);
@@ -190,7 +191,7 @@ wt.dec = dec;
 
 %-----------------------------------------------------------------------%
 function [L,H] = wdec1D(X,Lo,Hi,perm,dwtEXTM)
-% This function convolves X along the rows using the row vectors Lo and Hi.
+% This function convolves X across columns using the row vectors Lo and Hi.
 
 if ~isempty(perm) , X = permute(X,perm); end
 sX = size(X);
