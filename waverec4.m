@@ -29,8 +29,8 @@ function X = waverec4(wdec,varargin)
 %              coefficients for level 1 (k=15*(WDEC.level-1)). At each
 %              level, the wavelet coefficients in dec{k+2},...,dec{k+16} are
 %              in the following order:
-%              'HLLL','LHLL','HHLL','LLHL','HLHL','LHHL','HHHL','HLLH',
-%              'LHLH','HHLH','LLHH','HLHH','LHHH','HHHH'. The strings give
+%              'HLLL','LHLL','HHLL','LLHL','HLHL','LHHL','HHHL','LLLH',
+%              'HLLH','LHLH','HHLH','LLHH','HLHH','LHHH','HHHH'. This is
 %              the order in which the separable filtering operations are
 %              applied from left to right.
 %     sizes:   contains the successive sizes of the decomposition
@@ -40,10 +40,10 @@ function X = waverec4(wdec,varargin)
 %   components at level N of a 4-D wavelet decomposition. N must be
 %   a positive integer less or equal to the level of the decomposition.
 %   The valid values for TYPE are:
-%       - A group of 4 chars 'xyzt', one per direction, with 'x','y','z' and 't' 
-%         in the set {'a','d','l','h'} or in the corresponding upper case  
-%         set {'A','D','L','H'}), where 'A' (or 'L') stands for low pass 
-%         filter and 'D' (or 'H') stands for high pass filter.
+%       - A group of 4 chars 'xyzt', one per direction, with 'x','y','z'
+%         and 't' in the set {'a','d','l','h'} or in the corresponding
+%         upper case  set {'A','D','L','H'}), where 'A' (or 'L') stands for
+%         low pass filter and 'D' (or 'H') stands for high pass filter.
 %       - The char 'd' (or 'h' or 'D' or 'H') gives directly the sum of 
 %         all the components different from the low pass one.
 %       - The char 'a' (or 'l' or 'A' or 'L') gives the low pass 
@@ -83,7 +83,7 @@ function X = waverec4(wdec,varargin)
 %   Extended for 4D by
 %   T H   2021
 %   University of Helsinki, Dept. of Mathematics and Statistics
-%   Last edited: 4.3.2021
+%   Last edited: 11.5.2021
 
 % Check arguments.
 if nargin > 1
@@ -103,6 +103,7 @@ if nbIn>0
     errorFLAG = false;
     type = varargin{1};
     nbChar = length(type);
+    % Check if first letter is 'C'
     if nbChar==2 || nbChar==3 || nbChar==5
         if isequal(upper(type(1)),'C')
             type(1) = []; nbChar = nbChar-1; cfsFLAG = true;
@@ -110,28 +111,34 @@ if nbIn>0
             errorFLAG = true;
         end
     end
+    % 'type' should contain one letter or four letters
+    num = ones(1,4); % Decode information into num
     switch nbChar
-        case {1,4}
-            num = ones(1,4);
-            switch type
-                case {'a','l','A','L','1'} , num = Inf;
-                case {'d','h','D','H','0'} , num = -num;
+        case 1 % 'type' is just one letter
+            switch type % Check if lowpass or highpass
+                case {'a','l','A','L','1'}
+                    num = Inf;
+                case {'d','h','D','H','0'}
+                    num = -num;
                 otherwise
-                    if nbChar==4
-                        for k = 1:4
-                            switch type(k)
-                                case {'a','l','A','L','1'}
-                                case {'d','h','D','H','0'} , num(k) = 2;
-                                otherwise , errorFLAG = true;
-                            end
-                        end
-                    else
-                        errorFLAG = true;
-                    end
-            end                        
+                    errorFLAG = true;
+            end
+        case 4 % type is specified for each dimension
+            for k = 1:4 % Go through each character
+                switch type(k)
+                    case {'a','l','A','L','1'}
+                        % do nothing (lowpass ~ 1)
+                    case {'d','h','D','H','0'}
+                        num(k) = 0; % (highpass ~ 0)
+                    otherwise , errorFLAG = true;
+                end
+            end                       
         otherwise , errorFLAG = true;
     end
-    if isequal(num,[1 1 1 1]) , num = Inf; end
+    if isequal(num,[1 1 1 1])
+        % if type = 'LLLL' (or similar)
+        num = Inf;
+    end
     
     if errorFLAG
         error(message('Wavelet:FunctionArgVal:Invalid_ArgVal'));
@@ -148,7 +155,7 @@ if nbIn>0
     else
         levREC = level;
     end
-    if isinf(num)
+    if isinf(num) % type = 'L' or 'LLLL'
         First_toDEL = 2+15*(level-levREC);
         for k = First_toDEL:(15*level+1) , cfs{k}(:) = 0; end
         if cfsFLAG
@@ -156,24 +163,28 @@ if nbIn>0
             nbREC_UP = level-levREC;
         end
         
-    elseif isequal(num,[-1,-1,-1,-1])
-        cfs{1}(:) = 0;
+    elseif isequal(num,[-1,-1,-1,-1]) % type = 'H'
+        cfs{1}(:) = 0; % Remove approximation coefficients
         for k = 1:(level-levREC)
             for j = 1:15 , cfs{15*(k-1)+j+1}(:) = 0; end
         end
         if cfsFLAG , X = cfs; end
         
-    else
-        num(num==2) = 0;
+    else % Specific wavelet is given (for example type = 'LHHL')
+        % Choose the right coefficients from right level and by decoding
+        % the information in num using subbandIdx-function
         Idx_toKeep = 15*(level-levREC) + subbandIdx(num);
         if cfsFLAG
             if (~isequal(num,[1,1,1,1]) || isequal(level,levREC))
                 X = cfs{Idx_toKeep};
                 return
             elseif isequal(num,[1,1,1,1])
+                % This shouldn't be possible because num should be set to
+                % inf in this case.
                 nbREC_UP = level-levREC;
             end
         end
+        % Set unnecessary coefficients to 0
         for k = 1:(15*level+1)
             if k~=Idx_toKeep , cfs{k}(:) = 0; end
         end
@@ -182,12 +193,14 @@ if nbIn>0
 end
 
 idxBeg = 1;
+% Reconstruct up to level nbREC_UP
 for k=1:nbREC_UP
     idxEnd = idxBeg+15;
     wdec.dec = reshape(cfs(idxBeg:idxEnd),2,2,2,2);
-    X = idwt4(wdec,sizes(k+1,:));
-    cfs{idxEnd} = X;
+    X = idwt4(wdec,sizes(k+1,:)); % One-level reconstruction
+    cfs{idxEnd} = X; % Save for next level
     idxBeg = idxEnd;
+end
 end
 
 %-------------------------------------------------------------------------
@@ -195,13 +208,15 @@ function idxtokeep = subbandIdx(num)
 % This function determines the index 'idx' of the wavelet subband given in
 % 'pseudo' binary system. For example input [1 1 0 1] ~ LLHL subband should
 % be 5th subband.
-% For the input 1=L and 0=H, but the order goes 1->0 so we revert the
-% values to match binary [1 1 0 1] -> [0 0 1 0].
-% While the subbands are generated by permuting the filters from right to
-% left, once the 2x2x2x2 cell (.dec) is dropped into a column the order is
-% reversed. So we by flip [0 0 1 0] -> [0 1 0 0].
-% This value is then converted to actual binary -> '0100',
-% then to integer -> 4 and finally shifted by one to match Matlab indexing.
+% 1. For the input 1=L and 0=H, but the order goes 1->0 so we revert the
+%    values to match binary [1 1 0 1] -> [0 0 1 0].
+% 2. While the subbands are generated by permuting the filters from right
+%    to left, once the 2x2x2x2 cell (.dec) is dropped into a column the
+%    order is reversed. So we by flip [0 0 1 0] -> [0 1 0 0].
+% 3. This value is then converted to actual binary [0 1 0 0] -> '0100'.
+% 4. Then to integer '0100' -> 4.
+% 5. Finally shifted by one to match Matlab indexing 4 -> 5.
 idxtokeep = 1 + bin2dec(dec2bin(fliplr(~num))');
+end
 
 

@@ -43,7 +43,7 @@ function X = idwt4(wt,varargin)
 %   Extended for 4D by
 %   T H   2021
 %   University of Helsinki, Dept. of Mathematics and Statistics
-%   Last edited: 3.3.2021
+%   Last edited: 12.5.2021
 
 % Check arguments.
 if nargin > 1
@@ -81,30 +81,24 @@ while kk<=length(varargin)
                 
             otherwise
                 if length(word)==4
-                    num = ones(1,4);
-                    for k = 1:4
-                        
-                        switch word(k)
-                            case {'a','l','A','L','1'}
-                                num(k) = 1;
-                            case {'d','h','D','H','0'} 
-                                num(k) = 2;
-                            otherwise
-                                num(k) = -1;
-                        end
-                    end
-                    for n=1:2
-                        for j=1:2
-                            for k = 1:2
-                                for l = 1:2
-                                    if ~isequal([n,j,k,l],num)
-                                        dec{n,j,k,l}(:) = 0;
-                                    end
-                                end
-                            end
-                        end
-                    end
-                else
+                  num = ones(1,4);
+                  for k = 1:4
+                      switch word(k)
+                          case {'a','l','A','L','1'}
+                              num(k) = 1;
+                          case {'d','h','D','H','0'} 
+                              num(k) = 2;
+                          otherwise
+                              num(k) = -1;
+                      end
+                  end % for k
+                  
+                  for n = 1:2, for j = 1:2, for k = 1:2, for l = 1:2
+                    if ~isequal([n,j,k,l],num)
+                        dec{n,j,k,l}(:) = 0;
+                    end     %  l    k    j    n
+                              end, end, end, end
+                else % word is not of length 4
                     error(message('Wavelet:FunctionArgVal:Invalid_ArgVal'));
                 end
         end
@@ -119,72 +113,96 @@ end
 % time steps -> slices -> columns -> rows
 
 % Time steps
-perm = [1,4,2,3];
+dim = 4;
 U = cell(2,2,2);
 for i = 1:2    
     for j = 1:2
         for k = 1:2
-            U{i,j,k} = wrec1D(dec{i,j,k,1},Lo{4},perm,perFLAG,s) + ...
-                 wrec1D(dec{i,j,k,2},Hi{4},perm,perFLAG,s);
+            U{i,j,k} = wrec1D(dec{i,j,k,1},Lo{4},dim,perFLAG,s) + ...
+                 wrec1D(dec{i,j,k,2},Hi{4},dim,perFLAG,s);
         end % k
     end % j
 end % i
-clear dec
 
 % Slices
-perm = [1,3,2,4];
-V = cell(2,2,2);
+dim = 3;
+dec = cell(2,2,2); % Re-use existing variables for memory reasons
 for i = 1:2    
     for j = 1:2
-        V{i,j} = wrec1D(U{i,j,1},Lo{3},perm,perFLAG,s) + ...
-                 wrec1D(U{i,j,2},Hi{3},perm,perFLAG,s);
+        dec{i,j} = wrec1D(U{i,j,1},Lo{3},dim,perFLAG,s) + ...
+                 wrec1D(U{i,j,2},Hi{3},dim,perFLAG,s);
     end % j
 end % i
-clear U
 
 % Columns
-perm = []; % Same as [1,2,3,4]
-W = cell(1,2);
+dim = 2;
+U = cell(1,2); % Re-use existing variables for memory reasons
 for i = 1:2
-    W{i} = wrec1D(V{i,1},Lo{2},perm,perFLAG,s) + ...
-        wrec1D(V{i,2},Hi{2},perm,perFLAG,s);
+    U{i} = wrec1D(dec{i,1},Lo{2},dim,perFLAG,s) + ...
+        wrec1D(dec{i,2},Hi{2},dim,perFLAG,s);
 end
-clear V
 
 % Last reconstruction. Convolve rows.
-perm = [2,1,3,4];
-X = wrec1D(W{1},Lo{1},perm,perFLAG,s) + wrec1D(W{2},Hi{1},perm,perFLAG,s);
-
+dim = 1;
+X = wrec1D(U{1},Lo{1},dim,perFLAG,s) + wrec1D(U{2},Hi{1},dim,perFLAG,s);
+end
 %-----------------------------------------------------------------------%
-function X = wrec1D(X,F,perm,perFLAG,s)
+function Z = wrec1D(X,F,dim,perFLAG,s)
 
 if isa(X,'single'), F = single(F); end
+F = F(:); % Case to column vector
 
-if ~isempty(perm)
-    X = permute(X,perm);
-    s = s(perm);
+lx = size(X,dim);
+lf = length(F);
+nb = fix(lf/2-1);
+
+% Permute F to "dim-dimensional" vector
+switch dim
+    case 1
+        % Do nothing
+    case 2
+        F = F';
+    case 3
+        F = reshape(F,1,1,[]);
+    case 4
+        F = reshape(F,1,1,1,[]);
 end
-if perFLAG
-    lf = length(F);
-    lx = size(X,2);
-    nb = fix(lf/2-1);
+
+if perFLAG % Additional extension if 'per'iodic extension was used
     idxAdd = 1:nb;
     if nb>lx
         idxAdd = rem(idxAdd,lx);
         idxAdd(idxAdd==0) = lx;
     end
-    X = [X X(:,idxAdd,:,:)];
+    idxAdd = [1:lx,idxAdd];
+    lx = length(idxAdd);
+    % Extend using cell array
+    I = cell(1,4); I(:) = {':'};
+    I{dim} = idxAdd;
 end
-sX = size(X);
-if length(sX)<4 , sX(4) = 1; end
-Z = zeros(sX(1),2*sX(2)-1,sX(3),sX(4),class(X));
-Z(:,1:2:end,:,:) = X;
+% Odd indicies of the upsampled array
+J = cell(1,4); J(:) = {':'};
+J{dim} = 1:2:2*lx-1;
+
+sZ = size(X);
+if length(sZ)<4 , sZ(length(sZ)+1:4) = 1; end
+sZ(dim) = 2*lx-1;
+
+Z = zeros(sZ,class(X));
+if perFLAG
+    Z(J{:}) = X(I{:}); % Place elements of extended X into odd indices of Z
+else
+    Z(J{:}) = X; % Place elements of X into odd indices of Z
+end
 X = convn(Z,F);
 
-sX = size(X,2);
-F  = floor((sX-s)/2);
-C  = ceil((sX-s)/2);
-X  = X(:,1+F(2):end-C(2),:,:);
+lx = size(X,dim);
+first  = floor((lx-s(dim))/2);
+last  = ceil((lx-s(dim))/2);
 
-if ~isempty(perm) , X = ipermute(X,perm); end
+I = cell(1,4); I(:) = {':'};
+
+I{dim} = first + 1: lx - last;
+Z  = X(I{:});
+end
 %-----------------------------------------------------------------------%

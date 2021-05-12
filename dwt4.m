@@ -61,7 +61,7 @@ function wt = dwt4(X,varargin)
 %   Extended to 4D by 
 %   T H   2021
 %   University of Helsinki, Dept. of Mathematics and Statistics
-%   Last edited: 3.3.2021
+%   Last edited: 11.5.2021
 
 % Check arguments.
 if nargin > 1
@@ -137,49 +137,47 @@ end
 
 dec = cell(2,2,2,2);
 
-% Ensure that filters are row vectors so that the filtering
-% operations in convn() are correct
-LoD  = cellfun(@(x)x(:)',LoD,'uni',0);
-LoR  = cellfun(@(x)x(:)',LoR,'uni',0);
-HiD  = cellfun(@(x)x(:)',HiD,'uni',0);           
-HiR = cellfun(@(x)x(:)',HiR,'uni',0);
+% Ensure that filters are column vectors so that the filtering
+% operations in convn() are correct!
+LoD  = cellfun(@(x)x(:),LoD,'uni',0);
+LoR  = cellfun(@(x)x(:),LoR,'uni',0);
+HiD  = cellfun(@(x)x(:),HiD,'uni',0);           
+HiR = cellfun(@(x)x(:),HiR,'uni',0);
 
 % Notes regarding the following: different directions of X are convolved in
 % the following order: rows -> columns -> slices -> time steps.
-% wdec1D reverts the permutation so the output is always in the original
-% form (rows,columns,slices,time steps).
-% Wdec1D convolves across the second dimension.
+% This is performed by permuting (reshaping) the filters because permuting
+% 4D arrays is VERY inefficient.
 
 % Convolve X across rows
-permVect = [2,1,3,4]; % Permute
-[a,d] = wdec1D(X,LoD{1},HiD{1},permVect,dwtEXTM);
-clear X % These are no longer needed
+dim = 1; % Dimension
+% a   d  % Use bad variable names so they can be used again later
+[ada,dad] = wdec1D(X,LoD{1},HiD{1},dim,dwtEXTM);
 
 % Convolve a and d across columns
-permVect = []; % Same as [1,2,3,4];
-[aa,ad] = wdec1D(a,LoD{2},HiD{2},permVect,dwtEXTM);
-[da,dd] = wdec1D(d,LoD{2},HiD{2},permVect,dwtEXTM);
-clear a d % These are no longer needed
+dim = 2; % Dimension
+% aa  ad  % Use bad variable names so they can be used again later
+[aaa,aad] = wdec1D(ada,LoD{2},HiD{2},dim,dwtEXTM);
+% da  dd
+[dda,ddd] = wdec1D(dad,LoD{2},HiD{2},dim,dwtEXTM);
 
-permVect = [1,3,2,4]; % Permute
-% Convolve .. across slices
-[aaa,aad] = wdec1D(aa,LoD{3},HiD{3},permVect,dwtEXTM);
-[ada,add] = wdec1D(ad,LoD{3},HiD{3},permVect,dwtEXTM);
-[daa,dad] = wdec1D(da,LoD{3},HiD{3},permVect,dwtEXTM);
-[dda,ddd] = wdec1D(dd,LoD{3},HiD{3},permVect,dwtEXTM);
-clear aa ad da dd % There are no longer needed
+dim = 3; % Dimension
+% Convolve .. across slices (finally with correct names)
+[ada,add] = wdec1D(aad,LoD{3},HiD{3},dim,dwtEXTM);
+[aaa,aad] = wdec1D(aaa,LoD{3},HiD{3},dim,dwtEXTM);
+[daa,dad] = wdec1D(dda,LoD{3},HiD{3},dim,dwtEXTM);
+[dda,ddd] = wdec1D(ddd,LoD{3},HiD{3},dim,dwtEXTM);
 
-permVect = [1,4,2,3]; % Permute
+dim = 4; % Dimension
 % Convolve ... across time steps
-[dec{1,1,1,1},dec{1,1,1,2}] = wdec1D(aaa,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{1,1,2,1},dec{1,1,2,2}] = wdec1D(aad,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{1,2,1,1},dec{1,2,1,2}] = wdec1D(ada,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{1,2,2,1},dec{1,2,2,2}] = wdec1D(add,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{2,1,1,1},dec{2,1,1,2}] = wdec1D(daa,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{2,1,2,1},dec{2,1,2,2}] = wdec1D(dad,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{2,2,1,1},dec{2,2,1,2}] = wdec1D(dda,LoD{4},HiD{4},permVect,dwtEXTM);
-[dec{2,2,2,1},dec{2,2,2,2}] = wdec1D(ddd,LoD{4},HiD{4},permVect,dwtEXTM);
-clear aaa aad ada add daa dad dda ddd % These are no longer needed
+[dec{1,1,1,1},dec{1,1,1,2}] = wdec1D(aaa,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{1,1,2,1},dec{1,1,2,2}] = wdec1D(aad,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{1,2,1,1},dec{1,2,1,2}] = wdec1D(ada,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{1,2,2,1},dec{1,2,2,2}] = wdec1D(add,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{2,1,1,1},dec{2,1,1,2}] = wdec1D(daa,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{2,1,2,1},dec{2,1,2,2}] = wdec1D(dad,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{2,2,1,1},dec{2,2,1,2}] = wdec1D(dda,LoD{4},HiD{4},dim,dwtEXTM);
+[dec{2,2,2,1},dec{2,2,2,2}] = wdec1D(ddd,LoD{4},HiD{4},dim,dwtEXTM);
 
 wt.sizeINI = sX;
 wt.filters.LoD = LoD;
@@ -188,92 +186,85 @@ wt.filters.LoR = LoR;
 wt.filters.HiR = HiR;
 wt.mode = dwtEXTM;
 wt.dec = dec;
+end
 
 %-----------------------------------------------------------------------%
-function [L,H] = wdec1D(X,Lo,Hi,perm,dwtEXTM)
-% This function convolves X across columns using the row vectors Lo and Hi.
-
-if ~isempty(perm) , X = permute(X,perm); end
-sX = size(X);
-if length(sX)<4 , sX(4) = 1; end
+function [L,H] = wdec1D(X,Lo,Hi,dim,dwtEXTM)
+% This function convolves X across dim using the vectors Lo and Hi.
 
 if isa(X,'single'), Lo = single(Lo); Hi = single(Hi); end
 
+lx = size(X,dim);
 lf = length(Lo);
-lx = sX(2);
-lc = lx+lf-1;
-if lx<lf+1
-    nbAdd = lf-lx+1;
-    switch dwtEXTM
-        case {'sym','symh','symw','asym','asymh','asymw','ppd'}
-            Add = zeros(sX(1),nbAdd,sX(3),sX(4),class(X));
-            X = [Add , X , Add];
-    end
+
+% Permute Lo and Hi to "dim-dimensional" vectors
+switch dim
+    case 1
+        % Do nothing
+    case 2
+        Lo = Lo';
+        Hi = Hi';
+    case 3
+        Lo = reshape(Lo,1,1,[]);
+        Hi = reshape(Hi,1,1,[]);
+    case 4
+        Lo = reshape(Lo,1,1,1,[]);
+        Hi = reshape(Hi,1,1,1,[]);
 end
 
-switch dwtEXTM
-    case 'zpd'             % Zero extension.
-        
-    case {'sym','symh'}    % Symmetric extension (half-point).
-        X = [X(:,lf-1:-1:1,:,:) , X , X(:,end:-1:end-lf+1,:,:)];
-        
-    case 'sp0'             % Smooth extension of order 0.
-        X = [X(:,ones(1,lf-1),:,:) , X , X(:,lx*ones(1,lf-1),:,:)];
-        
-    case {'sp1','spd'}     % Smooth extension of order 1.
-        Z = zeros(sX(1),sX(2)+ 2*lf-2,sX(3),sX(4),class(X));
-        Z(:,lf:lf+lx-1,:,:) = X;
-        last = sX(2)+lf-1;
-        for k = 1:lf-1
-            Z(:,last+k,:,:) = 2*Z(:,last+k-1,:,:)- Z(:,last+k-2,:,:);
-            Z(:,lf-k,:,:)   = 2*Z(:,lf-k+1,:,:)- Z(:,lf-k+2,:,:);
-        end
-        X = Z; clear Z;
-        
-    case 'symw'            % Symmetric extension (whole-point).
-        X = [X(:,lf:-1:2,:,:) , X , X(:,end-1:-1:end-lf,:,:)];
-        
-    case {'asym','asymh'}  % Antisymmetric extension (half-point).
-        X = [-X(:,lf-1:-1:1,:,:) , X , -X(:,end:-1:end-lf+1,:,:)];        
-        
-    case 'asymw'           % Antisymmetric extension (whole-point).
-        X = [-X(:,lf:-1:2,:,:) , X , -X(:,end-1:-1:end-lf,:,:)];
+% Extend X along dim
+Y = wextend4D(X,lf-1,dim,dwtEXTM);
 
-    case 'ppd'             % Periodized extension (1).
-        X = [X(:,end-lf+2:end,:,:) , X , X(:,1:lf-1,:,:)];
-        
-    case 'per'             % Periodized extension (2).
-        if isodd(lx) , X = [X , X(:,end,:,:)]; lx = lx + 1; end
-        I = [lx-lf+1:lx , 1:lx , 1:lf];
-        if lx<lf
-            I = mod(I,lx);
-            I(I==0) = lx;
-        end
-        X = X(:,I,:,:);
-end
-L = convn(X,Lo);
-H = convn(X,Hi);
- clear X
-switch dwtEXTM
-    case 'zpd'
-    otherwise
-        lenL = size(L,2);
-        first = lf; last = lenL-lf+1;
-        L = L(:,first:last,:,:); H = H(:,first:last,:,:);
-        lenL = size(L,2);
-        first = 1+floor((lenL-lc)/2);  last = first+lc-1;
-        L = L(:,first:last,:,:); H = H(:,first:last,:,:);
-end
-L = L(:,2:2:end,:,:);
-H = H(:,2:2:end,:,:);
+X = convn(Y,Lo);
+Z = convn(Y,Hi);
+
+% Cutting and downsampling array (more efficient to edit index vector i
+% than the whole 4D array X and Z)
+lZ = size(Z,dim);
+I = cell(1,4); I(:) = {':'};
+% Remove extension of lf-1 from both ends
+first = lf;
+last = lZ-lf+1;
+i = first:last;
+% Remove extension caused by actual convolution
+li = length(i);
+first = 1+floor((li - (lx+lf-1))/2);
+last = first  + (lx+lf-1) -1;
+i = i(first:last);
+% Downsample
+first = 2;
+last = length(i);
 if isequal(dwtEXTM,'per')
-    last = ceil(lx/2);
-    L = L(:,1:last,:,:);
-    H = H(:,1:last,:,:);
+    % Periodic extension is weird
+    last = 2*ceil(lx/2);
 end
-
-if ~isempty(perm)
-    L = ipermute(L,perm);
-    H = ipermute(H,perm);
+i = i(first:2:last);
+I{dim} = i;
+% Use I to reduce the correct dimension
+L = X(I{:});
+H = Z(I{:});
+end
+%-----------------------------------------------------------------------%
+function Y = wextend4D(X,a,dim,dwtEXTM)
+% 4D version of wextend using correct extension for the indices
+lx = size(X,dim);
+% Check for allowed Extension methods
+switch dwtEXTM
+    case {'sym','symh','symw','sp0','per','ppd'} % Currently implemented
+        % We get the indicies from the original wextend (note the limitations)
+        i = wextend('ac',dwtEXTM,1:lx,a);
+        % Create cell array where i is placed on dim'th place
+        I = cell(1,4); I(:) = {':'};
+        I{dim} = i;
+        % Extend dim'th direction using i
+        Y = X(I{:});
+    case {'zpd','asym','asymh','asymw','sp1','spd'}
+        error(['Extension method ',dwtEXTM,' not implemented!'])
+        % Implementing other extension methods (zero-padding, anti-symmetric etc.)
+        % would be possible by including them here (but concatenation is not
+        % efficient)
+    otherwise
+        error('Unkown extension method.')
+end
 end
 %-----------------------------------------------------------------------%

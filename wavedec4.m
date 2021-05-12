@@ -28,8 +28,8 @@ function wdec = wavedec4(X,level,varargin)
 %              coefficients for level 1 (k=15*(WDEC.level-1)). At each
 %              level, the wavelet coefficients in dec{k+2},...,dec{k+16} are
 %              in the following order:
-%              'HLLL','LHLL','HHLL','LLHL','HLHL','LHHL','HHHL','HLLH',
-%              'LHLH','HHLH','LLHH','HLHH','LHHH','HHHH'. The strings give
+%              'HLLL','LHLL','HHLL','LLHL','HLHL','LHHL','HHHL','LLLH',
+%              'HLLH','LHLH','HHLH','LLHH','HLHH','LHHH','HHHH'. This is
 %              the order in which the separable filtering operations are
 %              applied from left to right. For example, suppose the order
 %              is 'LHHL'. First, WAVEDEC4 applies the lowpass (scaling)
@@ -61,7 +61,7 @@ function wdec = wavedec4(X,level,varargin)
 %   Extended to 4D by
 %   T H   2021
 %   University of Helsinki, Dept. of Mathematics and Statistics
-%   Last edited: 2.3.2021
+%   Last edited: 11.5.2021
 
 % Convert strings to char arrays
 if nargin > 2
@@ -114,6 +114,16 @@ for k = 2:2:nbIn-2
     end
 end
 
+% Check for allowed Extension methods
+switch dwtEXTM
+    case {'sym','symh','symw','sp0','per','ppd'}
+        % Anything wextend can do with indicies
+    case {'zpd','asym','asymh','asymw','sp1','spd'}
+        error(['Extension method ',dwtEXTM,' not implemented!'])
+    otherwise
+        error('Unkown extension method.')
+end
+
 % Initialization.
 if isempty(X) , wdec = {}; return; end
 sizes = zeros(level+1,4);
@@ -121,8 +131,12 @@ sizes(level+1,1:4) = size(X);
 for k=1:level
     wdec = dwt4(X,{LoD,HiD,LoR,HiR},'mode',dwtEXTM);
     X = wdec.dec{1,1,1,1};
-    if length(size(X))>2
-        sizes(level+1-k,1:4) = size(X);
+    sX = size(X);
+    if length(sX)>2
+        if length(sX) < 4 % Matlab doesn't "see" dimensions of length 1
+            sX(length(sX)+1:4) = 1;
+        end
+        sizes(level+1-k,1:4) = sX;
     else
         sizes(level+1-k,1:4) = ceil(sizes(level+2-k,1:4)/2);
     end
@@ -139,4 +153,5 @@ wdec.level = level;
 wdec.dec   = cfs;
 wdec.sizes = sizes;
 wdec = orderfields(wdec,{'sizeINI','level','filters','mode','dec','sizes'});
+end
 
