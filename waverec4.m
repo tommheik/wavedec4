@@ -32,7 +32,10 @@ function X = waverec4(wdec,varargin)
 %              'HLLL','LHLL','HHLL','LLHL','HLHL','LHHL','HHHL','LLLH',
 %              'HLLH','LHLH','HHLH','LLHH','HLHH','LHHH','HHHH'. This is
 %              the order in which the separable filtering operations are
-%              applied from left to right.
+%              applied in the order "columns - rows - slices - time steps"
+%              NOTE: This order is different from waverec2 and waverec3
+%              which use the rows -> columns convention by convolving first
+%              the second dimension and then the first.
 %     sizes:   contains the successive sizes of the decomposition
 %              components.
 %

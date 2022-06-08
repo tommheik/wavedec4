@@ -20,13 +20,17 @@ function wt = dwt4(X,varargin)
 %              of the decomposition. dec{i,j,k,l} for i,j,k,l = 1 or 2 contains
 %              the coefficients obtained by lowpass filtering (for i or j
 %              or k or l = 1) or highpass filtering (for i or j or k or l = 2). The
-%              filtering operations are in the following order: rows,
-%              columns, slices, times. For example, dec{1,2,1,1} is obtained
-%              by filtering the input X along the rows with the lowpass
-%              (scaling) filter, along the columns with the highpass
-%              (wavelet) filter, along the slices with the
-%              lowpass (scaling) filter, and along time steps with the
-%              lowpass (scaling) filter.
+%              filtering operations are in the following order: columns,
+%              rows, slices, times. For example, dec{1,2,1,1} is obtained
+%              by filtering the input X along the columns (1st dimension)
+%              with the lowpass (scaling) filter, along the rows (2nd 
+%              dimension) with the highpass (wavelet) filter, along the 
+%              slices (3rd dimension) with the lowpass (scaling) filter, and 
+%              along time steps (4th dimension) with thelowpass (scaling)
+%              filter.
+%              NOTE: This order is different from wavedec2 and wavedec3
+%              which use the rows -> columns convention by convolving first
+%              the second dimension and then the first.
 %
 %   Instead of a single wavelet, you may specify four wavelets (i.e. one
 %   wavelet for each direction): WT = DWT4(X,W,...) with W =
@@ -145,16 +149,20 @@ HiD  = cellfun(@(x)x(:),HiD,'uni',0);
 HiR = cellfun(@(x)x(:),HiR,'uni',0);
 
 % Notes regarding the following: different directions of X are convolved in
-% the following order: rows -> columns -> slices -> time steps.
+% the following order: columns -> rows -> slices -> time steps, WHICH IS
+% DIFFERENT from wavedec2, wavedec3 and the usual Matlab convention. This
+% is done to match the order of dimensions in X and the name of the wavelet
+% used. That is, LHHL wavelet goes X(lowpass, highpass, highpass, lowpass).
+%
 % This is performed by permuting (reshaping) the filters because permuting
 % 4D arrays is VERY inefficient.
 
-% Convolve X across rows
+% Convolve X across columns (vertically)
 dim = 1; % Dimension
 % a   d  % Use bad variable names so they can be used again later
 [ada,dad] = wdec1D(X,LoD{1},HiD{1},dim,dwtEXTM);
 
-% Convolve a and d across columns
+% Convolve a and d across rows (horizontally)
 dim = 2; % Dimension
 % aa  ad  % Use bad variable names so they can be used again later
 [aaa,aad] = wdec1D(ada,LoD{2},HiD{2},dim,dwtEXTM);
@@ -169,7 +177,7 @@ dim = 3; % Dimension
 [dda,ddd] = wdec1D(ddd,LoD{3},HiD{3},dim,dwtEXTM);
 
 dim = 4; % Dimension
-% Convolve ... across time steps
+% Convolve ... across time steps (4th dimension)
 [dec{1,1,1,1},dec{1,1,1,2}] = wdec1D(aaa,LoD{4},HiD{4},dim,dwtEXTM);
 [dec{1,1,2,1},dec{1,1,2,2}] = wdec1D(aad,LoD{4},HiD{4},dim,dwtEXTM);
 [dec{1,2,1,1},dec{1,2,1,2}] = wdec1D(ada,LoD{4},HiD{4},dim,dwtEXTM);
@@ -200,7 +208,7 @@ lf = length(Lo);
 % Permute Lo and Hi to "dim-dimensional" vectors
 switch dim
     case 1
-        % Do nothing
+        % Do nothing because filters are column vectors
     case 2
         Lo = Lo';
         Hi = Hi';

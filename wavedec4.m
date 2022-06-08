@@ -33,10 +33,13 @@ function wdec = wavedec4(X,level,varargin)
 %              the order in which the separable filtering operations are
 %              applied from left to right. For example, suppose the order
 %              is 'LHHL'. First, WAVEDEC4 applies the lowpass (scaling)
-%              filter with downsampling to the rows of X. Next, WAVEDEC4
+%              filter with downsampling to the columns of X. Next, WAVEDEC4
 %              applies the highpass (wavelet) filter with downsampling to
-%              the columns of X, then to the slices of X and then the
-%              lowpass (scaling) filter to the time steps of X.
+%              the rows of X, then to the slices of X and then the lowpass
+%              (scaling) filter to the time steps of X.
+%              NOTE: This order is different from wavedec2 and wavedec3
+%              which use the rows -> columns convention by convolving first
+%              the second dimension and then the first.
 %     sizes:   contains the successive sizes of the decomposition
 %              components.
 %

@@ -19,7 +19,7 @@ function X = idwt4(wt,varargin)
 %   C = IDWT4(WT,TYPE) allows to compute the single-level reconstructed 
 %   component based on the 4-D wavelet decomposition. 
 %   The valid values for TYPE are:
-%       - A group of 4 chars 'xyzt', one per direction, with 'x','y','z' and 't'
+%       - A group of 4 chars 'yxzt', one per direction, with 'y','x','z' and 't'
 %         in the set {'a','d','l','h'} or in the corresponding upper case  
 %         set {'A','D','L','H'}), where 'A' (or 'L') stands for low pass 
 %         filter and 'D' (or 'H') stands for high pass filter.
@@ -96,8 +96,9 @@ while kk<=length(varargin)
                   for n = 1:2, for j = 1:2, for k = 1:2, for l = 1:2
                     if ~isequal([n,j,k,l],num)
                         dec{n,j,k,l}(:) = 0;
-                    end     %  l    k    j    n
-                              end, end, end, end
+                    end
+                  %  l    k    j    n
+                  end, end, end, end
                 else % word is not of length 4
                     error(message('Wavelet:FunctionArgVal:Invalid_ArgVal'));
                 end
@@ -110,7 +111,7 @@ while kk<=length(varargin)
 end
 
 % Reconstruction. Convolve in the opposite direction:
-% time steps -> slices -> columns -> rows
+% time steps -> slices -> rows -> columns
 
 % Time steps
 dim = 4;
@@ -124,7 +125,7 @@ for i = 1:2
     end % j
 end % i
 
-% Slices
+% Slices (along z-axis)
 dim = 3;
 dec = cell(2,2,2); % Re-use existing variables for memory reasons
 for i = 1:2    
@@ -134,7 +135,7 @@ for i = 1:2
     end % j
 end % i
 
-% Columns
+% Rows (horizontally or along x-axis)
 dim = 2;
 U = cell(1,2); % Re-use existing variables for memory reasons
 for i = 1:2
@@ -142,7 +143,7 @@ for i = 1:2
         wrec1D(dec{i,2},Hi{2},dim,perFLAG,s);
 end
 
-% Last reconstruction. Convolve rows.
+% Last reconstruction. Convolve columns (vertically or along y-axis)
 dim = 1;
 X = wrec1D(U{1},Lo{1},dim,perFLAG,s) + wrec1D(U{2},Hi{1},dim,perFLAG,s);
 end
@@ -159,7 +160,7 @@ nb = fix(lf/2-1);
 % Permute F to "dim-dimensional" vector
 switch dim
     case 1
-        % Do nothing
+        % Do nothing because filter is a column vector
     case 2
         F = F';
     case 3
